@@ -1,11 +1,20 @@
 import re
 from subprocess import check_output
 import sys
+import os
+
+#TODO : say how to add the source
 
 acceptedCommands = [('help', 0),('ls', 0), ('use', 1), ('use', 0), ('set', 1), ('set', 0)]
 cachedVersions = None
 
+configFolder = os.path.expanduser('~') + '/.config/pvm/bin'
+
 def byteToString (b): return b.decode('utf-8')
+def setupFolders ():
+    if not os.path.exists(configFolder):
+        os.makedirs(configFolder)
+    return os.path.exists(configFolder)
 def listVersions ():
     global cachedVersions
     if cachedVersions is not None:
@@ -28,7 +37,7 @@ def setVersion (version):
 def checkVersionByPosition (value):
     return isinstance(value, int) and value >= 0 and value < len(listVersions())
 def useVersionByPosition (versionNumber, isSet):
-    if(!checkVersionByPosition(versionNumber)):
+    if not checkVersionByPosition(versionNumber):
         return False
     #get the version
     #if isSet
@@ -38,6 +47,9 @@ def useVersionByPosition (versionNumber, isSet):
     return True
 
 def checkArgv ():
+    if not setupFolders():
+        exit(1)
+
     args = sys.argv
     if len(args) == 1:
         showHelp()
@@ -58,12 +70,12 @@ def checkArgv ():
         exit(0)
     elif args[1] == 'use' and len(args) == 2:
         printVersions()
-        exit(setVersionByPosition(input('Which version do you want to set as default? '), False) ? 0 : 1)
+        exit(setVersionByPosition(input('Which version do you want to use? '), False) if 0 else 1)
     elif args[1] == 'use' and len(args) == 3:
         exit(setVersion(args[2]))
     elif args[1] == 'set' and len(args) == 2:
         printVersions()
-        exit(useVersionByPosition(input('Which version do you want to set as default? '), True) ? 0 : 1)
+        exit(useVersionByPosition(input('Which version do you want to set as default? '), True) if 0 else 1)
     elif args[1] == 'set' and len(args) == 3:
         exit(setVersion(args[2]))
 
