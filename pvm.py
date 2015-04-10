@@ -2,16 +2,40 @@ import re
 from subprocess import check_output
 import sys
 
-acceptedCommands = [('help', 0),('ls', 0), ('use', 1), ('use', 0)]
+acceptedCommands = [('help', 0),('ls', 0), ('use', 1), ('use', 0), ('set', 1), ('set', 0)]
+cachedVersions = None
 
 def byteToString (b): return b.decode('utf-8')
 def listVersions ():
+    global cachedVersions
+    if cachedVersions is not None:
+        return cachedVersions
     pyFileRegex = re.compile('^python[0-9]\.?[0-9]?$').search
-    files = map(byteToString, check_output(['ls', '/usr/bin']).splitlines())
-    return filter(pyFileRegex, files)
+    versions = filter(pyFileRegex, map(byteToString, check_output(['ls', '/usr/bin']).splitlines()))
+    cachedVersions = versions
+    return versions
+
 def printVersions ():
+    print('\nYou currently have those versions installed (some may be symlinks):')
     for count, version in enumerate(listVersions()):
         print('(' + str(count) + ') ' + version)
+
+def useVersion (version):
+    return
+def setVersion (version):
+    return
+
+def checkVersionByPosition (value):
+    return isinstance(value, int) and value >= 0 and value < len(listVersions())
+def useVersionByPosition (versionNumber, isSet):
+    if(!checkVersionByPosition(versionNumber)):
+        return False
+    #get the version
+    #if isSet
+    #return setVersion
+    #else
+    #return useVersion(completeVersion)
+    return True
 
 def checkArgv ():
     args = sys.argv
@@ -30,15 +54,28 @@ def checkArgv ():
         showHelp()
         exit(0)
     elif args[1] == 'ls':
-        print('\nYou currently have those Pythons installed (some may only be symlinks):\n')
         printVersions()
+        exit(0)
+    elif args[1] == 'use' and len(args) == 2:
+        printVersions()
+        exit(setVersionByPosition(input('Which version do you want to set as default? '), False) ? 0 : 1)
+    elif args[1] == 'use' and len(args) == 3:
+        exit(setVersion(args[2]))
+    elif args[1] == 'set' and len(args) == 2:
+        printVersions()
+        exit(useVersionByPosition(input('Which version do you want to set as default? '), True) ? 0 : 1)
+    elif args[1] == 'set' and len(args) == 3:
+        exit(setVersion(args[2]))
+
 
 def showHelp ():
     print('Python Version Manager\n')
     print('Usage:')
     print(' pvm help                Show this message')
     print(' pvm list                List installed versions')
-    print(' pvm use                 Show installed versions and let you choose which one to set as default')
-    print(' pvm use version         Let you choose which version to use as default')
+    print(' pvm use                 Show installed versions and let you choose which one to use')
+    print(' pvm use version         Let you choose which version to use')
+    print(' pvm set                 Show installed versions and let you choose which one to set as default')
+    print(' pvm set version         Let you choose which version to set as default')
 
 checkArgv()
