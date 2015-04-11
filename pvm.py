@@ -4,12 +4,14 @@ import sys
 import os
 
 #TODO : say how to add the source
+#TODO : set
 
-acceptedCommands = [('help', 0),('ls', 0), ('use', 1), ('use', 0), ('set', 1), ('set', 0)]
+acceptedCommands = [('help', 0), ('ls', 0), ('default', 0), ('use', 1), ('use', 0), ('set', 1), ('set', 0)]
 cachedVersions = None
 
 configFolder = os.getenv('PVM')
-configBin = configFolder+'/python'
+configBin = configFolder + '/python'
+defaultPythonPath = '/usr/bin/python'
 
 def getVersions ():
     global cachedVersions
@@ -25,11 +27,14 @@ def printVersions ():
     for count, version in enumerate(getVersions()):
         print('(' + str(count) + ') ' + version)
 
-def useVersion (path):
+def clean ():
     if os.path.exists(configBin):
         os.remove(configBin)
+def useVersion (path):
+    clean()
     os.symlink(path, configBin)
 def setVersion (path):
+    print('Not implemented')
     return
 
 def getVersionPath (version):
@@ -49,7 +54,17 @@ def useVersionByPosition (versionNumber, isSet):
     #return useVersion(completeVersion)
     return True
 
-def checkArgv ():
+def showHelp ():
+    print('Python Version Manager\n')
+    print('Usage:')
+    print(' pvm help                Show this message')
+    print(' pvm list                List installed versions')
+    print(' pvm default             Use default python version.')
+    print(' pvm use                 Show installed versions and let you choose which one to use')
+    print(' pvm use version         Let you choose which version to use')
+    print(' pvm set                 Show installed versions and let you choose which one to set as default')
+    print(' pvm set version         Let you choose which version to set as default')
+def main ():
     args = sys.argv
     if len(args) == 1:
         showHelp()
@@ -61,12 +76,20 @@ def checkArgv ():
         if arg[0] == args[1] and len(args) == arg[1] + 2:
             isOk = True;
 
+    if isOk is False:
+        print('\nThe parameters were not acceptable\n')
+        showHelp()
+        exit(1)
+
     #Manage different args
     if args[1] == 'help':
         showHelp()
         exit(0)
     elif args[1] == 'ls':
         printVersions()
+        exit(0)
+    elif args[1] == 'default':
+        clean()
         exit(0)
     elif args[1] == 'use' and len(args) == 2:
         printVersions()
@@ -82,17 +105,11 @@ def checkArgv ():
         printVersions()
         exit(useVersionByPosition(input('Which version do you want to set as default? '), True) if 0 else 1)
     elif args[1] == 'set' and len(args) == 3:
-        exit(setVersion(args[2]))
+        path = getVersionPath(args[2])
+        if path is None:
+            print('This version is not present on the system')
+            exit(1)
+        setVersion(path)
+        exit(0)
 
-
-def showHelp ():
-    print('Python Version Manager\n')
-    print('Usage:')
-    print(' pvm help                Show this message')
-    print(' pvm list                List installed versions')
-    print(' pvm use                 Show installed versions and let you choose which one to use')
-    print(' pvm use version         Let you choose which version to use')
-    print(' pvm set                 Show installed versions and let you choose which one to set as default')
-    print(' pvm set version         Let you choose which version to set as default')
-
-checkArgv()
+main()

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-python3 $HOME/Project/pvm/pvm.py "$@"
+python3 /home/parasithe/Project/pvm/pvm.py "$@"
