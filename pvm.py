@@ -18,7 +18,7 @@ def getVersions ():
     if cachedVersions is not None:
         return cachedVersions
     pyFileRegex = re.compile('^python[0-9]\.?[0-9]?$').search
-    versions = filter(pyFileRegex, os.listdir('/usr/bin'))
+    versions = list(filter(pyFileRegex, os.listdir('/usr/bin')))
     cachedVersions = versions
     return versions
 
@@ -28,14 +28,13 @@ def printVersions ():
         print('(' + str(count) + ') ' + version)
 
 def clean ():
-    if os.path.exists(configBin):
+    if os.path.islink(configBin):
         os.remove(configBin)
 def useVersion (path):
     clean()
     os.symlink(path, configBin)
 def setVersion (path):
     print('Not implemented')
-    return
 
 def getVersionPath (version):
     if 'python' + version not in getVersions():
@@ -46,12 +45,13 @@ def checkVersionByPosition (value):
     return isinstance(value, int) and value >= 0 and value < len(getVersions())
 def useVersionByPosition (versionNumber, isSet):
     if not checkVersionByPosition(versionNumber):
+        print('That wasn\'t an option')
         return False
-    #get the version
-    #if isSet
-    #return setVersion
-    #else
-    #return useVersion(completeVersion)
+    version = '/usr/bin/' + getVersions()[versionNumber]
+    if isSet:
+        setVersion(version)
+    else:
+        useVersion(version)
     return True
 
 def showHelp ():
@@ -77,7 +77,7 @@ def main ():
             isOk = True;
 
     if isOk is False:
-        print('\nThe parameters were not acceptable\n')
+        print('\nThe parameters are not acceptable\n')
         showHelp()
         exit(1)
 
@@ -93,7 +93,9 @@ def main ():
         exit(0)
     elif args[1] == 'use' and len(args) == 2:
         printVersions()
-        exit(useVersionByPosition(input('Which version do you want to use? '), False) if 0 else 1)
+        nb = int(input('Which version do you want to use? '))
+        worked = useVersionByPosition(nb, False)
+        exit(worked if 0 else 1)
     elif args[1] == 'use' and len(args) == 3:
         path = getVersionPath(args[2])
         if path is None:
