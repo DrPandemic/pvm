@@ -8,34 +8,37 @@ import os
 acceptedCommands = [('help', 0),('ls', 0), ('use', 1), ('use', 0), ('set', 1), ('set', 0)]
 cachedVersions = None
 
-configFolder = os.path.expanduser('~') + '/.config/pvm/bin'
+configFolder = os.getenv('PVM')
+configBin = configFolder+'/python'
 
-def byteToString (b): return b.decode('utf-8')
-def setupFolders ():
-    if not os.path.exists(configFolder):
-        os.makedirs(configFolder)
-    return os.path.exists(configFolder)
-def listVersions ():
+def getVersions ():
     global cachedVersions
     if cachedVersions is not None:
         return cachedVersions
     pyFileRegex = re.compile('^python[0-9]\.?[0-9]?$').search
-    versions = filter(pyFileRegex, map(byteToString, check_output(['ls', '/usr/bin']).splitlines()))
+    versions = filter(pyFileRegex, os.listdir('/usr/bin'))
     cachedVersions = versions
     return versions
 
 def printVersions ():
     print('\nYou currently have those versions installed (some may be symlinks):')
-    for count, version in enumerate(listVersions()):
+    for count, version in enumerate(getVersions()):
         print('(' + str(count) + ') ' + version)
 
-def useVersion (version):
-    return
-def setVersion (version):
+def useVersion (path):
+    if os.path.exists(configBin):
+        os.remove(configBin)
+    os.symlink(path, configBin)
+def setVersion (path):
     return
 
+def getVersionPath (version):
+    if 'python' + version not in getVersions():
+        return None
+    return '/usr/bin/python' + version
+
 def checkVersionByPosition (value):
-    return isinstance(value, int) and value >= 0 and value < len(listVersions())
+    return isinstance(value, int) and value >= 0 and value < len(getVersions())
 def useVersionByPosition (versionNumber, isSet):
     if not checkVersionByPosition(versionNumber):
         return False
@@ -47,9 +50,6 @@ def useVersionByPosition (versionNumber, isSet):
     return True
 
 def checkArgv ():
-    if not setupFolders():
-        exit(1)
-
     args = sys.argv
     if len(args) == 1:
         showHelp()
@@ -70,9 +70,14 @@ def checkArgv ():
         exit(0)
     elif args[1] == 'use' and len(args) == 2:
         printVersions()
-        exit(setVersionByPosition(input('Which version do you want to use? '), False) if 0 else 1)
+        exit(useVersionByPosition(input('Which version do you want to use? '), False) if 0 else 1)
     elif args[1] == 'use' and len(args) == 3:
-        exit(setVersion(args[2]))
+        path = getVersionPath(args[2])
+        if path is None:
+            print('This version is not present on the system')
+            exit(1)
+        useVersion(path)
+        exit(0)
     elif args[1] == 'set' and len(args) == 2:
         printVersions()
         exit(useVersionByPosition(input('Which version do you want to set as default? '), True) if 0 else 1)
