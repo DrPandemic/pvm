@@ -3,13 +3,11 @@ from subprocess import check_output
 import sys
 import os
 
-#TODO : say how to add the source
-#TODO : set
-
 acceptedCommands = [('help', 0), ('ls', 0), ('default', 0), ('use', 1), ('use', 0), ('set', 1), ('set', 0)]
 cachedVersions = None
 
-configFolder = os.getenv('PVM')
+#The or is useful when the script is run from another user (root)
+configFolder = os.getenv('PVM') or ''
 configBin = configFolder + '/python'
 defaultPythonPath = '/usr/bin/python'
 
@@ -34,7 +32,9 @@ def useVersion (path):
     clean()
     os.symlink(path, configBin)
 def setVersion (path):
-    print('Not implemented')
+    if os.path.islink(defaultPythonPath):
+        os.remove(defaultPythonPath)
+    os.symlink(path, defaultPythonPath)
 
 def getVersionPath (version):
     if 'python' + version not in getVersions():
@@ -43,15 +43,15 @@ def getVersionPath (version):
 
 def checkVersionByPosition (value):
     return isinstance(value, int) and value >= 0 and value < len(getVersions())
-def useVersionByPosition (versionNumber, isSet):
+def useVersionByPosition (versionNumber, isUse):
     if not checkVersionByPosition(versionNumber):
         print('That wasn\'t an option')
         return False
     version = '/usr/bin/' + getVersions()[versionNumber]
-    if isSet:
-        setVersion(version)
-    else:
+    if isUse:
         useVersion(version)
+    else:
+        setVersion(version)
     return True
 
 def showHelp ():
@@ -94,7 +94,7 @@ def main ():
     elif args[1] == 'use' and len(args) == 2:
         printVersions()
         nb = int(input('Which version do you want to use? '))
-        worked = useVersionByPosition(nb, False)
+        worked = useVersionByPosition(nb, True)
         exit(worked if 0 else 1)
     elif args[1] == 'use' and len(args) == 3:
         path = getVersionPath(args[2])
@@ -105,7 +105,9 @@ def main ():
         exit(0)
     elif args[1] == 'set' and len(args) == 2:
         printVersions()
-        exit(useVersionByPosition(input('Which version do you want to set as default? '), True) if 0 else 1)
+        nb = int(input('Which version do you want to set? '))
+        worked = useVersionByPosition(nb, False)
+        exit(worked if 0 else 1)
     elif args[1] == 'set' and len(args) == 3:
         path = getVersionPath(args[2])
         if path is None:
