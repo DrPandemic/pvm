@@ -1,9 +1,8 @@
 import re
-from subprocess import check_output
 import sys
 import os
 
-acceptedCommands = [('help', 0), ('ls', 0), ('default', 0), ('use', 1), ('use', 0), ('set', 1), ('set', 0)]
+acceptedCommands = [('help', 0), ('ls', 0), ('default', 0), ('use', 1), ('use', 0), ('set', 1), ('set', 0), ('init', 0)]
 cachedVersions = None
 
 #The or is useful when the script is run from another user (root)
@@ -24,6 +23,10 @@ def printVersions ():
     print('\nYou currently have those versions installed (some may be symlinks):')
     for count, version in enumerate(getVersions()):
         print('(' + str(count) + ') ' + version)
+
+def init ():
+    if not os.path.islink(configBin):
+        os.symlink(defaultPythonPath, configBin)
 
 def clean ():
     if os.path.islink(configBin):
@@ -91,11 +94,11 @@ def main ():
     elif args[1] == 'default':
         clean()
         exit(0)
+    elif args[1] == 'init':
+        init()
+        exit(0)
     elif args[1] == 'use' and len(args) == 2:
-        printVersions()
-        nb = int(input('Which version do you want to use? '))
-        worked = useVersionByPosition(nb, True)
-        exit(worked if 0 else 1)
+        exit(0)
     elif args[1] == 'use' and len(args) == 3:
         path = getVersionPath(args[2])
         if path is None:
