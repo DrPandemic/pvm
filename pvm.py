@@ -25,7 +25,7 @@ def printVersions ():
         print('(' + str(count) + ') ' + version)
 
 def init ():
-    if not os.path.islink(configBin):
+    if not os.path.islink(configBin) and configFolder != '':
         os.symlink(defaultPythonPath, configBin)
 
 def clean ():
