@@ -61,7 +61,7 @@ def showHelp ():
     print('Python Version Manager\n')
     print('Usage:')
     print(' pvm help                Show this message')
-    print(' pvm list                List installed versions')
+    print(' pvm ls                  List installed versions')
     print(' pvm default             Use default python version.')
     print(' pvm use                 Show installed versions and let you choose which one to use')
     print(' pvm use version         Let you choose which version to use')
