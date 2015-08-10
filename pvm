@@ -1,3 +1,125 @@
-#!/bin/sh
+#!/bin/python
+import re
+import sys
+import os
 
-python3 /home/parasithe/Project/pvm/pvm.py "$@"
+acceptedCommands = [('help', 0), ('ls', 0), ('default', 0), ('use', 1), ('use', 0), ('set', 1), ('set', 0), ('init', 0)]
+cachedVersions = None
+
+#The or is useful when the script is run from another user (root)
+configFolder = os.getenv('PVM') or ''
+configBin = configFolder + '/python'
+defaultPythonPath = '/usr/bin/python'
+
+def getVersions ():
+    global cachedVersions
+    if cachedVersions is not None:
+        return cachedVersions
+    pyFileRegex = re.compile('^python[0-9]\.?[0-9]?$').search
+    versions = list(filter(pyFileRegex, os.listdir('/usr/bin')))
+    cachedVersions = versions
+    return versions
+
+def printVersions ():
+    print('\nYou currently have those versions installed (some may be symlinks):')
+    for count, version in enumerate(getVersions()):
+        print('(' + str(count) + ') ' + version)
+
+def init ():
+    if not os.path.islink(configBin) and configFolder != '':
+        os.symlink(defaultPythonPath, configBin)
+
+def clean ():
+    if os.path.islink(configBin):
+        os.remove(configBin)
+def useVersion (path):
+    clean()
+    os.symlink(path, configBin)
+    print("You are now using " + path)
+def setVersion (path):
+    if os.path.islink(defaultPythonPath):
+        os.remove(defaultPythonPath)
+    os.symlink(path, defaultPythonPath)
+    print("You are now using " + path)
+
+def getVersionPath (version):
+    if 'python' + version not in getVersions():
+        return None
+    return '/usr/bin/python' + version
+
+def checkVersionByPosition (value):
+    return isinstance(value, int) and value >= 0 and value < len(getVersions())
+def useVersionByPosition (versionNumber, isUse):
+    if not checkVersionByPosition(versionNumber):
+        print('That wasn\'t an option')
+        return False
+    version = '/usr/bin/' + getVersions()[versionNumber]
+    if isUse:
+        useVersion(version)
+    else:
+        setVersion(version)
+    return True
+
+def showHelp ():
+    print('Python Version Manager\n')
+    print('Usage:')
+    print(' pvm help                Show this message')
+    print(' pvm ls                  List installed versions')
+    print(' pvm default             Use default python version.')
+    print(' pvm use                 Show installed versions and let you choose which one to use')
+    print(' pvm use version         Let you choose which version to use')
+    print(' pvm set                 Show installed versions and let you choose which one to set as default')
+    print(' pvm set version         Let you choose which version to set as default')
+def main ():
+    args = sys.argv
+    if len(args) == 1:
+        showHelp()
+        exit(0)
+
+    #Checks if the args are ok
+    isOk = False
+    for arg in acceptedCommands:
+        if arg[0] == args[1] and len(args) == arg[1] + 2:
+            isOk = True;
+
+    if isOk is False:
+        print('\nThe parameters are not acceptable\n')
+        showHelp()
+        exit(1)
+
+    #Manage different args
+    if args[1] == 'help':
+        showHelp()
+        exit(0)
+    elif args[1] == 'ls':
+        printVersions()
+        exit(0)
+    elif args[1] == 'default':
+        clean()
+        exit(0)
+    elif args[1] == 'init':
+        init()
+        exit(0)
+    elif args[1] == 'use' and len(args) == 2:
+        exit(0)
+    elif args[1] == 'use' and len(args) == 3:
+        path = getVersionPath(args[2])
+        if path is None:
+            print('This version is not present on the system')
+            exit(1)
+        useVersion(path)
+        exit(0)
+    elif args[1] == 'set' and len(args) == 2:
+        printVersions()
+        nb = int(input('Which version do you want to set? '))
+        worked = useVersionByPosition(nb, False)
+        exit(worked if 0 else 1)
+    elif args[1] == 'set' and len(args) == 3:
+        path = getVersionPath(args[2])
+        if path is None:
+            print('This version is not present on the system')
+            exit(1)
+        setVersion(path)
+        exit(0)
+
+main()
